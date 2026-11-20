@@ -105,7 +105,13 @@ proxy_cmd = _stub(
 _stub('COMMANDS.args_cmd', get_user_ytdlp_args=lambda uid, url: {}, log_ytdlp_options=lambda *a, **k: None)
 _stub('HELPERS.safe_messeger', safe_send_message=lambda *a, **k: None)
 _stub('HELPERS.proxy_utils', test_proxy_url=lambda *a, **k: True, redact_proxy_url_for_logs=lambda u: '[r]')
+_stub('CONFIG.config', Config=type('Config', (), {}))
 _stub('HELPERS.pot_helper', add_pot_to_ytdl_opts=lambda opts, url: opts)
+import ast
+_pot_tree = ast.parse(open(os.path.join(REPO, 'HELPERS/pot_helper.py'), encoding='utf-8').read())
+_pot_functions = [n for n in _pot_tree.body if isinstance(n, ast.FunctionDef) and n.name in ('is_age_restriction_error', 'add_web_creator_to_opts')]
+exec(compile(ast.Module(body=_pot_functions, type_ignores=[]), 'pot_helper.py', 'exec'), sys.modules['HELPERS.pot_helper'].__dict__)
+sys.modules['HELPERS.pot_helper'].logger = mock.Mock()
 _stub('HELPERS.filesystem_hlp', create_directory=lambda *a, **k: None)
 _stub('HELPERS.porn', is_porn=lambda *a, **k: False)
 import logging
@@ -258,12 +264,64 @@ run("#352 available to channel's members", YT, raises("ERROR: [youtube] abc: Thi
 
 print('== #360 age verification')
 run('#360 sign in to confirm your age', YT, raises("ERROR: [youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users."),
-    1, 'PERMANENT_UNAVAILABLE')
+    2, 'PERMANENT_UNAVAILABLE', check=lambda out: 'web_creator' in CALLS[1]['extractor_args']['youtube']['player_client'])
 run('#360 take a few minutes to verify', YT, raises("ERROR: [youtube] abc: Take a few minutes to verify your age."),
-    1, 'PERMANENT_UNAVAILABLE')
+    2, 'PERMANENT_UNAVAILABLE')
+
+def age_then_success(opts, n):
+    if n == 1:
+        raise DownloadError('Sign in to confirm your age')
+    assert 'web_creator' in opts['extractor_args']['youtube']['player_client']
+    return {'id': 'age-ok', 'formats': [{'format_id': '18', 'vcodec': 'avc1', 'acodec': 'aac'}]}
+run('age retry succeeds', YT, age_then_success, 2, None,
+    check=lambda out: out['id'] == 'age-ok')
+def age_then_live(opts, n):
+    if n == 1:
+        raise DownloadError('age gate')
+    return {'id': 'live', 'is_live': True, 'formats': []}
+run('age retry preserves live stream', YT, age_then_live, 2, 'LIVE_STREAM_DETECTED')
+
+def age_creator_then_cookie(opts, n):
+    if n == 1:
+        raise DownloadError('Sign in to confirm your age')
+    if n == 2:
+        raise DownloadError('cookies required')
+    return {'id': 'cookie-ok', 'formats': [{'vcodec': 'avc1', 'acodec': 'aac'}]}
+
+def creator_cookie_retry(user_id, url, func, opts):
+    opts['cookiefile'] = cookie_path
+    return func(opts)
+
+cookie_path = os.path.join(os.getcwd(), 'fresh-cookie.txt')
+with open(cookie_path, 'w') as f:
+    f.write('# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2000000000\tSID\ttest\n')
+cookie_module = sys.modules['COMMANDS.cookies_cmd']
+original_retry = cookie_module.retry_download_with_different_cookies
+cookie_module.retry_download_with_different_cookies = creator_cookie_retry
+run('age probe then fresh cookie uses creator', YT, age_creator_then_cookie, 3, None,
+    check=lambda out: out.get('id') == 'cookie-ok' and out.get('_web_creator_retry') is True
+    and 'web_creator' in CALLS[2].get('extractor_args', {}).get('youtube', {}).get('player_client', [])
+    and CALLS[2].get('cookiefile') == cookie_path)
+cookie_module.retry_download_with_different_cookies = original_retry
+
+for phrase in ('verify your age', 'age verification required', 'inappropriate for some users', 'age restricted', 'age-restricted', 'age gate'):
+    def phrase_then_success(opts, n, phrase=phrase):
+        if n == 1:
+            raise DownloadError(phrase)
+        return {'id': 'age-ok', 'formats': [{'vcodec': 'avc1', 'acodec': 'aac'}]}
+    run('age phrase: ' + phrase, YT, phrase_then_success, 2, None)
+
+for unusable in ([], [{'format_id': 'sb0', 'vcodec': 'none', 'acodec': 'none', 'ext': 'mhtml'}]):
+    def age_unusable(opts, n):
+        if n == 1:
+            raise DownloadError('Sign in to confirm your age')
+        return {'id': 'age-empty', 'formats': unusable}
+    run('age retry rejects empty/storyboard formats', YT, age_unusable, 2, 'PERMANENT_UNAVAILABLE')
+run('age plus rate limit is not retried', YT, raises('Sign in to confirm your age; HTTP Error 429'),
+    1, 'RATE_LIMITED')
 
 print('== #394/#436/#475 bot-check family (fail fast, no cookie/proxy)')
-run('#394 not a bot', YT, raises("ERROR: [youtube] abc: Sign in to confirm you're not a bot"), 1, 'PERMANENT_UNAVAILABLE')
+run('#394 not a bot', YT, raises("ERROR: [youtube] abc: Sign in to confirm you're not a bot"), 3, 'PERMANENT_UNAVAILABLE', check=lambda out: COOKIE_LOG == ['yt'])
 run('#436 page needs reload', YT, raises("ERROR: [youtube] abc: The page needs to be reloaded."), 1, 'PERMANENT_UNAVAILABLE')
 run('#475 INNERTUBE_CONTEXT', YT, raises("ERROR: [youtube] abc: An extractor error has occurred. (caused by KeyError('INNERTUBE_CONTEXT'))"),
     1, 'PERMANENT_UNAVAILABLE')

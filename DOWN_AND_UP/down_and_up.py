@@ -418,6 +418,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
     # Initialize retry guards early to avoid UnboundLocalError
     did_proxy_retry = False
     did_cookie_retry = False
+    did_age_retry = False
     did_live_from_start_retry = False
     did_format_fallback = False
     # Single-shot retry guards per item (issues #476, #485, #451/#385, #384)
@@ -1389,10 +1390,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
         successful_uploads = 0
 
-        def try_download(url, attempt_opts):
+        def try_download(url, attempt_opts, age_retry_opts=None):
             messages = safe_get_messages(message.chat.id)
             nonlocal current_total_process, error_message, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, did_format_fallback, is_hls, error_message_sent, is_reverse_order, use_range_download, current_playlist_items_override, range_entries_metadata, download_sections, hls_file_found, auto_range_added
-            nonlocal did_no_pp_retry, did_local_file_retry, did_resume_retry, download_stage
+            nonlocal did_no_pp_retry, did_local_file_retry, did_resume_retry, download_stage, did_age_retry
             # Initialize hls_file_found for this download attempt
             hls_file_found = False
 
@@ -1434,7 +1435,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 no_pp_opts['postprocessors'] = []
                 no_pp_opts['hls_prefer_native'] = True
                 no_pp_opts['outtmpl'] = os.path.join(user_dir_name, f"vid_{_hl.md5(url.encode('utf-8')).hexdigest()[:12]}.%(ext)s")
-                return try_download(url, no_pp_opts)
+                return try_download(url, no_pp_opts, age_retry_opts)
 
             def _postprocessing_error_text():
                 return (
@@ -1800,6 +1801,15 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             
             # Add PO token provider for YouTube domains
             ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
+            if did_age_retry and age_retry_opts is None:
+                ytdl_opts = add_web_creator_to_opts(ytdl_opts)
+            if age_retry_opts is not None:
+                if 'proxy' not in ytdl_opts and 'proxy' in age_retry_opts:
+                    ytdl_opts['proxy'] = age_retry_opts['proxy']
+                if 'extractor_args' in age_retry_opts:
+                    ytdl_opts['extractor_args'] = age_retry_opts['extractor_args']
+            if hasattr(threading.current_thread(), 'cookiefile_override'):
+                ytdl_opts['cookiefile'] = threading.current_thread().cookiefile_override
             
             # If MKV is ON, remux to mkv; else to mp4
             # Ensure merge_output_format is also set correctly
@@ -1823,7 +1833,10 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                 # First, check if the requested format is available using cached info or get_video_formats
                 download_stage = "format_check"
                 check_info = None
-                if cached_video_info:
+                if age_retry_opts is not None:
+                    # The original probe cannot reflect the active web_creator options.
+                    check_info = None
+                elif cached_video_info:
                     check_info = cached_video_info
                     logger.info("✅ [OPTIMIZATION] Using cached video info for format check")
                 else:
@@ -1832,6 +1845,11 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     check_info = get_video_formats(url, user_id, cookies_already_checked=cookies_already_checked, use_proxy=use_proxy)
                     logger.info("Format check completed")
                 
+                if isinstance(check_info, dict) and check_info.get('_web_creator_retry'):
+                    did_age_retry = True
+                    ytdl_opts = add_web_creator_to_opts(ytdl_opts)
+                    age_retry_opts = ytdl_opts
+
                 if isinstance(check_info, dict) and check_info.get('error') in (
                     'PERMANENT_UNAVAILABLE', 'RATE_LIMITED', 'UNSUPPORTED_URL'
                 ):
@@ -2004,6 +2022,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         raise
                     if should_abort_retries(error_text):
                         logger.warning(f"Permanent/rate-limit extract error, skipping proxy fallback for {url}: {error_text[:200]}")
+                        if is_youtube_url(url) and is_age_restriction_error(error_text) and classify_retryability(error_text) != 'RATE_LIMITED':
+                            raise yt_dlp.utils.DownloadError(error_text)
                         raise Exception(f"Failed to extract video information: {error_text}")
 
                     # If it's a Cloudflare error, try impersonate fallback first
@@ -2593,7 +2613,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     if not did_resume_retry and _partial_file_exists_on_disk():
                         did_resume_retry = True
                         logger.warning(f"Incomplete download, resuming once from the .part file for user {user_id}")
-                        resume_result = try_download(url, attempt_opts)
+                        resume_result = try_download(url, attempt_opts, age_retry_opts)
                         if isinstance(resume_result, dict):
                             logger.info(f"Resume after incomplete download succeeded for user {user_id}")
                             return resume_result
@@ -2620,7 +2640,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         did_format_fallback = True
                         fallback_opts = attempt_opts.copy()
                         fallback_opts['format'] = FORMAT_FALLBACK_SELECTOR
-                        retry_result = try_download(url, fallback_opts)
+                        retry_result = try_download(url, fallback_opts, age_retry_opts)
                         if isinstance(retry_result, dict):
                             logger.info(f"Format fallback to '{FORMAT_FALLBACK_SELECTOR}' successful for user {user_id}")
                             return retry_result
@@ -2679,7 +2699,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             os.makedirs(user_dir_name, exist_ok=True)
                         except OSError as mk_err:
                             logger.error(f"Failed to re-create download directory {user_dir_name}: {mk_err}")
-                        local_retry_result = try_download(url, attempt_opts)
+                        local_retry_result = try_download(url, attempt_opts, age_retry_opts)
                         if isinstance(local_retry_result, dict):
                             logger.info(f"Download succeeded after re-creating the download directory for user {user_id}")
                             return local_retry_result
@@ -2692,7 +2712,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
                     did_live_from_start_retry = True
                     # Retry the download with live_from_start disabled
-                    retry_result = try_download(url, attempt_opts)
+                    retry_result = try_download(url, attempt_opts, age_retry_opts)
                     if retry_result is not None:
                         logger.info(f"Download retry with --no-live-from-start successful for user {user_id}")
                         return retry_result
@@ -2776,7 +2796,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # EXTRACTOR_ERROR) instead of triggering a multi-strategy
                     # retry storm.
                     _perm_bot_indicators = ('sign in to confirm', 'not a bot', 'page needs to be reloaded')
-                    _is_perm_bot = any(_k in error_message.lower() for _k in _perm_bot_indicators)
+                    _is_perm_bot = (not is_age_restriction_error(error_message) and
+                                    any(_k in error_message.lower() for _k in _perm_bot_indicators))
                     if _is_perm_bot:
                         logger.warning(f"YouTube permanent bot-detection error, skipping cookie/proxy retries for {url}: {error_message[:200]}")
                         log_error_to_channel(message, f"YouTube bot-detection: {error_message[:300]}", url)
@@ -2788,7 +2809,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         logger.info(f"YouTube cookie-related error detected for user {user_id}, attempting retry with different cookies")
                         try:
                             retry_result = retry_download_with_different_cookies(
-                                user_id, url, try_download, url, attempt_opts
+                                user_id, url, try_download, url, attempt_opts, age_retry_opts
                             )
                         except Exception as cookie_retry_error:
                             logger.error(f"YouTube cookie retry failed with unexpected error for user {user_id}: {cookie_retry_error}")
@@ -2803,11 +2824,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     # 1.5) Age restriction retry с web_creator client
                     # web_creator использует studio.youtube.com endpoint, который позволяет
                     # скачивать age-restricted видео при наличии cookies + po_token
-                    if is_age_restriction_error(error_message) and not should_abort_retries(error_message):
+                    if (not did_age_retry and is_age_restriction_error(error_message)
+                            and classify_retryability(error_message) != 'RATE_LIMITED'):
+                        did_age_retry = True
                         logger.info(f"YouTube age restriction detected for user {user_id}, attempting retry with web_creator client")
                         try:
-                            web_creator_opts = add_web_creator_to_opts(attempt_opts)
-                            retry_result = try_download(url, web_creator_opts)
+                            web_creator_opts = add_web_creator_to_opts(ytdl_opts)
+                            retry_result = try_download(url, attempt_opts, web_creator_opts)
                         except Exception as age_retry_error:
                             logger.warning(f"web_creator retry failed for user {user_id}: {age_retry_error}")
                             retry_result = None
@@ -3304,6 +3327,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
 
             # Reset retry flags for each new item in playlist
             did_cookie_retry = False
+            did_age_retry = False
             did_proxy_retry = False
             did_live_from_start_retry = False
             did_format_fallback = False

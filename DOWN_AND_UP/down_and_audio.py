@@ -404,6 +404,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
     # Initialize retry guards early to avoid UnboundLocalError
     did_proxy_retry = False
     did_cookie_retry = False
+    did_age_retry = False
     did_live_from_start_retry = False
     did_format_fallback = False
     _audio_format_fallback = None  # Set by format fallback when 'ba' is unavailable
@@ -1084,10 +1085,10 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
         # One-time retry guards to avoid infinite retry loops across attempts
         # (already initialized at the beginning of the function)
 
-        def try_download_audio(url, current_index):
+        def try_download_audio(url, current_index, age_retry_opts=None):
             messages = safe_get_messages(message.chat.id)
             nonlocal current_total_process, did_cookie_retry, did_proxy_retry, did_live_from_start_retry, did_format_fallback, _audio_format_fallback, is_hls, is_reverse_order, current_playlist_items_override, use_range_download, range_entries_metadata, unknown_error_message_sent, download_sections
-            nonlocal did_local_file_retry, last_audio_error
+            nonlocal did_local_file_retry, last_audio_error, did_age_retry
             download_format = _audio_format_fallback or format_override or 'ba'
             # (Re)create the download directory right before yt-dlp starts so a
             # directory removed by a cleanup race is restored (issue #451).
@@ -1351,23 +1352,16 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             # Add PO token provider for YouTube domains
             ytdl_opts = add_pot_to_ytdl_opts(ytdl_opts, url)
 
-            # Force web_creator client for age restriction retry (thread-local flag)
-            import threading
-            if getattr(threading.current_thread(), 'force_web_creator_for_audio', False):
-                yt_args = ytdl_opts.get('extractor_args', {}).get('youtube', {})
-                current_clients = yt_args.get('player_client', [])
-                if 'web_creator' not in (current_clients or []):
-                    if current_clients:
-                        current_clients = list(current_clients) + ['web_creator']
-                    else:
-                        current_clients = ['web_creator']
-                    if 'extractor_args' not in ytdl_opts:
-                        ytdl_opts['extractor_args'] = {}
-                    if 'youtube' not in ytdl_opts['extractor_args']:
-                        ytdl_opts['extractor_args']['youtube'] = {}
-                    ytdl_opts['extractor_args']['youtube']['player_client'] = current_clients
-                    logger.info(f"🔓 Forced web_creator player_client for audio age restriction retry")
-                threading.current_thread().force_web_creator_for_audio = False
+            if did_age_retry and age_retry_opts is None:
+                from HELPERS.pot_helper import add_web_creator_to_opts
+                ytdl_opts = add_web_creator_to_opts(ytdl_opts)
+            if age_retry_opts is not None:
+                # Prefer a newly selected route; otherwise retain the consumed
+                # thread-local proxy from the previous attempt.
+                if 'proxy' not in ytdl_opts and 'proxy' in age_retry_opts:
+                    ytdl_opts['proxy'] = age_retry_opts['proxy']
+                if 'extractor_args' in age_retry_opts:
+                    ytdl_opts['extractor_args'] = age_retry_opts['extractor_args']
 
             # match_filter will be added later for domain filtering only
 
@@ -1594,7 +1588,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
                                     threading.current_thread().proxy_for_audio_download = None
                                 threading.current_thread().proxy_for_audio_download = proxy_url
-                                return try_download_audio(url_arg, current_index)
+                                return try_download_audio(url_arg, current_index, age_retry_opts)
                             
                             retry_result = retry_download_with_proxy(
                                 user_id, url, try_download_audio_wrapper, url, {}, error_message=error_to_check
@@ -1650,7 +1644,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     did_format_fallback = True
                     _audio_format_fallback = 'worstvideo+bestaudio/worst'
                     logger.info(f"Format 'ba' not available for {url}, retrying with '{_audio_format_fallback}'")
-                    retry_result = try_download_audio(url, current_index)
+                    retry_result = try_download_audio(url, current_index, age_retry_opts)
                     _audio_format_fallback = None
                     if retry_result is not None and retry_result != "POSTPROCESSING_ERROR":
                         logger.info(f"Audio format fallback successful for user {user_id}")
@@ -1789,7 +1783,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     logger.info(f"Live-from-start error detected for user {user_id}, retrying with --no-live-from-start")
                     did_live_from_start_retry = True
                     # Retry the download with live_from_start disabled
-                    retry_result = try_download_audio(url, current_index)
+                    retry_result = try_download_audio(url, current_index, age_retry_opts)
                     if retry_result is not None:
                         logger.info(f"Audio download retry with --no-live-from-start successful for user {user_id}")
                         return retry_result
@@ -1847,7 +1841,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     logger.warning(f"Audio file vanished during download (dir={os.path.abspath(user_folder)}, dir_exists={os.path.isdir(user_folder)}): {error_text[:300]}")
                     if not did_local_file_retry:
                         did_local_file_retry = True
-                        local_retry_result = try_download_audio(url, current_index)
+                        local_retry_result = try_download_audio(url, current_index, age_retry_opts)
                         if local_retry_result is not None:
                             return local_retry_result
                         return None
@@ -1943,7 +1937,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                                 if not hasattr(threading.current_thread(), 'proxy_for_audio_download'):
                                     threading.current_thread().proxy_for_audio_download = None
                                 threading.current_thread().proxy_for_audio_download = proxy_url
-                                return try_download_audio(url_arg, current_index)
+                                return try_download_audio(url_arg, current_index, age_retry_opts)
                             
                             retry_result = retry_download_with_proxy(
                                 user_id, url, try_download_audio_wrapper, url, {}, error_message=error_text
@@ -1960,12 +1954,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                         logger.info(f"Geo-error detected in audio but proxy retry already attempted, skipping")
                     
                     # Age restriction retry с web_creator client
-                    if is_age_restriction_error(error_text):
+                    if (not did_age_retry and is_age_restriction_error(error_text)
+                            and classify_retryability(error_text) != 'RATE_LIMITED'):
+                        did_age_retry = True
                         logger.info(f"YouTube age restriction detected in audio download for user {user_id}, attempting retry with web_creator client")
                         try:
-                            import threading
-                            threading.current_thread().force_web_creator_for_audio = True
-                            retry_result = try_download_audio(url, current_index)
+                            from HELPERS.pot_helper import add_web_creator_to_opts
+                            retry_result = try_download_audio(url, current_index, add_web_creator_to_opts(ytdl_opts))
                         except Exception as age_retry_error:
                             logger.warning(f"web_creator audio retry failed for user {user_id}: {age_retry_error}")
                             retry_result = None
@@ -2294,6 +2289,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
 
             # Reset retry flags for each new item in playlist
             did_cookie_retry = False
+            did_age_retry = False
             did_proxy_retry = False
             did_live_from_start_retry = False
             did_local_file_retry = False

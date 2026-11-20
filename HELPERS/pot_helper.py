@@ -343,6 +343,8 @@ def is_age_restriction_error(error_message: str) -> bool:
     error_lower = error_message.lower()
     age_keywords = [
         'sign in to confirm your age',
+        'verify your age',
+        'age verification required',
         'inappropriate for some users',
         'age restricted',
         'age-restricted',
