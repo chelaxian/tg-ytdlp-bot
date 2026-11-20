@@ -78,7 +78,7 @@ def _terminal_error_result(error_text, cookie_pass_done=True):
     if not should_abort_retries(error_text):
         return None
     # Auth-required errors get exactly one cookie pass before becoming terminal.
-    if not cookie_pass_done and is_auth_required(error_text):
+    if not cookie_pass_done and classify_retryability(error_text) == 'AUTH_REQUIRED':
         return None
     if classify_retryability(error_text) == RATE_LIMITED:
         return {'error': 'RATE_LIMITED', 'original_error': error_text}
@@ -582,6 +582,33 @@ def _recover_from_download_error(first_error, url, user_id, ytdl_opts, extract_i
     if "LIVE_STREAM_DETECTED" in error_text and LimitsConfig.ENABLE_LIVE_STREAM_BLOCKING:
         return {'error': 'LIVE_STREAM_DETECTED'}
 
+    # Age-gated YouTube has one client-specific attempt before the terminal gate.
+    from HELPERS.pot_helper import is_age_restriction_error, add_web_creator_to_opts
+    if (is_youtube_url(url) and classify_retryability(error_text) != RATE_LIMITED
+            and is_age_restriction_error(error_text)):
+        clients = ytdl_opts.get('extractor_args', {}).get('youtube', {}).get('player_client', [])
+        if 'web_creator' not in clients:
+            ytdl_opts = add_web_creator_to_opts(ytdl_opts)
+            result, retry_e = _attempt(ytdl_opts, 'Age restriction retry')
+            if (isinstance(result, dict) and result.get('error') == 'LIVE_STREAM_DETECTED'):
+                return result
+            if (isinstance(result, dict) and any(
+                isinstance(fmt, dict) and fmt.get('ext') != 'mhtml'
+                and any(fmt.get(codec) not in (None, '', 'none')
+                        and not str(fmt.get(codec)).startswith('images')
+                        for codec in ('vcodec', 'acodec'))
+                for fmt in (result.get('formats') or [])
+            )):
+                result['_web_creator_retry'] = True
+                return result
+            if result is not None:
+                logger.warning(f"Age restriction retry returned no playable formats for {url}")
+            if retry_e is not None:
+                last_error, error_text = retry_e, str(retry_e)
+        # A repeated age failure is terminal; do not mistake it for a bot check.
+        if classify_retryability(error_text) == 'PERMANENT':
+            return _terminal(error_text, cookie_pass_done=True)
+
     # Permanent / rate-limit / client-4xx errors: abort before any retry
     # (issues #323, #329, #330, #352, #360, #394, #436, #475, #477, #479).
     terminal = _terminal(error_text, cookie_pass_done=False)
@@ -650,6 +677,8 @@ def _recover_from_download_error(first_error, url, user_id, ytdl_opts, extract_i
                 last_error, error_text, retry_result = retry_e, str(retry_e), None
             if retry_result is not None:
                 logger.info(f"get_video_formats retry with different cookies successful for user {user_id}")
+                if isinstance(retry_result, dict) and 'web_creator' in ytdl_opts.get('extractor_args', {}).get('youtube', {}).get('player_client', []):
+                    retry_result['_web_creator_retry'] = True
                 return retry_result
             logger.warning(f"All cookie retry attempts failed in get_video_formats for user {user_id}")
         # Note: geo errors are handled below, before the proxy fallback.

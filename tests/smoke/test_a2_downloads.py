@@ -33,7 +33,7 @@ def functions(path, names, env, nonlocals=False):
 class Tests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.count=0;self.downloads=0;self.error=None;self.phase='extract';self.metadata={'id':'xyz','title':'title','formats':[]}
+        self.count=0;self.downloads=0;self.error=None;self.phase='extract';self.metadata={'id':'xyz','title':'title','formats':[]};self.opts_seen=[];self.extract_errors=[]
         outer=self
         class YDL:
             def __init__(self,opts): self.opts=opts
@@ -41,6 +41,10 @@ class Tests(unittest.TestCase):
             def __exit__(self,*a): return False
             def extract_info(self,*a,**kw):
                 outer.count+=1
+                outer.opts_seen.append(dict(self.opts))
+                if outer.extract_errors:
+                    error = outer.extract_errors.pop(0)
+                    if error: raise DownloadError(error)
                 if outer.error and outer.phase=='extract': raise DownloadError(outer.error)
                 return dict(outer.metadata)
             def download(self,*a):
@@ -58,7 +62,7 @@ class Tests(unittest.TestCase):
                  yt_dlp=types.SimpleNamespace(YoutubeDL=YDL,utils=types.SimpleNamespace(DownloadError=DownloadError)),
                  safe_get_messages=lambda *a:Msg(),logger=Mock(),message=types.SimpleNamespace(chat=types.SimpleNamespace(id=1)),user_id=1,
                  user_dir_name=self.tmp.name,current_total_process='',error_message='',did_cookie_retry=False,did_proxy_retry=False,did_live_from_start_retry=False,
-                 did_format_fallback=False,is_hls=False,error_message_sent=False,is_reverse_order=False,use_range_download=False,
+                 did_format_fallback=False,did_age_retry=False,is_hls=False,error_message_sent=False,is_reverse_order=False,use_range_download=False,
                  current_playlist_items_override=None,range_entries_metadata=None,download_sections=None,hls_file_found=False,auto_range_added=False,
                  did_no_pp_retry=False,did_local_file_retry=False,did_resume_retry=False,download_stage='init',is_playlist=False,current_index=1,
                  is_no_filter_domain=lambda *a:True,is_no_cookie_domain=lambda *a:True,is_youtube_url=lambda *a:False,need_subs=False,
@@ -167,6 +171,118 @@ class Tests(unittest.TestCase):
                     self.assertIsNone(self.env['info_dict'])
                     self.assertEqual(self.env['send_error_to_user'].call_count, 1)
                     self.assertTrue(self.env['error_message_sent'])
+
+    def test_audio_age_options_keep_current_route_and_cookie(self):
+        tree = ast.parse((R/'DOWN_AND_UP/down_and_audio.py').read_text(encoding='utf-8-sig'))
+        node = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
+                    and ast.unparse(n.test) == 'age_retry_opts is not None'
+                    and any(isinstance(x, ast.Assign) and 'extractor_args' in ast.unparse(x) for x in ast.walk(n)))
+        code = compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<audio-options>', 'exec')
+        env = {'age_retry_opts': {'proxy': 'old', 'cookiefile': 'old',
+                                  'extractor_args': {'youtube': {'player_client': ['web_creator']}}},
+               'ytdl_opts': {'proxy': 'new', 'cookiefile': 'new'}}
+        exec(code, env)
+        self.assertEqual(env['ytdl_opts']['proxy'], 'new')
+        self.assertEqual(env['ytdl_opts']['cookiefile'], 'new')
+        self.assertIn('web_creator', env['ytdl_opts']['extractor_args']['youtube']['player_client'])
+
+    def test_audio_age_retry_restores_consumed_proxy(self):
+        tree = ast.parse((R/'DOWN_AND_UP/down_and_audio.py').read_text(encoding='utf-8-sig'))
+        node = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
+                    and ast.unparse(n.test) == 'age_retry_opts is not None'
+                    and any(isinstance(x, ast.Assign) and 'extractor_args' in ast.unparse(x) for x in ast.walk(n)))
+        code = compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<audio-options>', 'exec')
+        env = {'age_retry_opts': {'proxy': 'http://active:8080', 'extractor_args': {}}, 'ytdl_opts': {}}
+        exec(code, env)
+        self.assertEqual(env['ytdl_opts']['proxy'], 'http://active:8080')
+
+    def test_successful_creator_probe_does_not_repeat_age_retry(self):
+        self.env.update(is_youtube_url=lambda *a: True,
+                        is_age_restriction_error=lambda e: 'age gate' in e.lower(),
+                        add_web_creator_to_opts=lambda o: {**o, 'extractor_args': {'youtube': {'player_client': ['web_creator']}}},
+                        is_youtube_cookie_error=lambda *a: False)
+        self.metadata.update(_web_creator_retry=True, formats=[{'vcodec': 'avc1'}])
+        self.error = 'age gate'
+        self.run_download()
+        self.assertEqual(self.count, 1)
+
+    def test_format_probe_creator_carries_to_download(self):
+        self.env.update(add_web_creator_to_opts=lambda o: {**o, 'extractor_args': {'youtube': {'player_client': ['web_creator']}}})
+        self.metadata.update(_web_creator_retry=True, formats=[{'vcodec': 'avc1'}])
+        self.assertEqual(self.run_download()['id'], 'xyz')
+        self.assertIn('web_creator', self.opts_seen[0]['extractor_args']['youtube']['player_client'])
+
+    def test_age_retry_uses_refreshed_cookie(self):
+        from unittest.mock import patch
+        old = Path(self.tmp.name) / 'old.txt'
+        new = Path(self.tmp.name) / 'new.txt'
+        for cookie in (old, new):
+            cookie.write_text('# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2000000000\tSID\ttest\n')
+        self.env.update(is_youtube_url=lambda *a: True, did_age_retry=False,
+                        is_age_restriction_error=lambda e: 'age gate' in e.lower(),
+                        add_web_creator_to_opts=lambda o: {**o, 'extractor_args': {'youtube': {'player_client': ['web_creator']}}},
+                        is_youtube_cookie_error=lambda e: 'cookies' in e.lower(),
+                        add_pot_to_ytdl_opts=lambda o, u: {**o, 'cookiefile': str(old)})
+        def rotate(uid, url, callback, *args):
+            with patch.object(threading.current_thread(), 'cookiefile_override', str(new), create=True):
+                return callback(*args)
+        self.env['retry_download_with_different_cookies'] = rotate
+        self.extract_errors = ['age gate', 'cookies required', None]
+        self.assertEqual(self.run_download()['id'], 'xyz')
+        self.assertEqual(self.opts_seen[-1]['cookiefile'], str(new))
+        self.assertIn('web_creator', self.opts_seen[-1]['extractor_args']['youtube']['player_client'])
+
+    def test_age_retries_once_without_bot_check(self):
+        self.env.update(is_youtube_url=lambda *a: True, did_age_retry=False,
+                        is_age_restriction_error=lambda e: 'confirm your age' in e.lower(),
+                        add_web_creator_to_opts=lambda o: {**o, 'extractor_args': {'youtube': {'player_client': ['web_creator']}}},
+                        is_youtube_cookie_error=lambda *a: True)
+        self.error = 'Sign in to confirm your age. This video may be inappropriate for some users.'
+        self.assertIsNone(self.run_download())
+        self.assertEqual(self.count, 2)
+        self.assertTrue(self.env['did_age_retry'])
+        self.env['log_error_to_channel'].assert_not_called()
+
+    def test_age_retry_bypasses_terminal_format_probe_and_keeps_options(self):
+        self.env.update(is_youtube_url=lambda *a: True, did_age_retry=False,
+                        is_age_restriction_error=lambda e: 'confirm your age' in e.lower(),
+                        add_web_creator_to_opts=lambda o: {**o, 'extractor_args': {'youtube': {'player_client': ['web_creator'], 'po_token': ['token']}}},
+                        is_youtube_cookie_error=lambda *a: False)
+        calls = []
+        def probe(*a, **kw):
+            calls.append(1)
+            return {'id': 'xyz', 'formats': []} if len(calls) == 1 else {'error': 'PERMANENT_UNAVAILABLE', 'original_error': 'Sign in to confirm your age'}
+        sys.modules['DOWN_AND_UP.yt_dlp_hook'].get_video_formats = probe
+        self.error = 'Sign in to confirm your age'
+        result = self.run_download()
+        self.assertEqual(self.count, 2)
+        self.assertEqual(len(calls), 1)
+
+    def test_age_then_format_fallback_preserves_active_options(self):
+        from copy import deepcopy
+        def add_creator(opts):
+            opts = deepcopy(opts)
+            opts['extractor_args']['youtube']['player_client'].append('web_creator')
+            return opts
+        cookie = Path(self.tmp.name) / 'cookie.txt'
+        cookie.write_text('# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2000000000\tSID\ttest\n')
+        def add_pot(opts, url):
+            opts.update(proxy='http://proxy.test:8080', cookiefile=str(cookie),
+                        extractor_args={'youtube': {'player_client': ['web'], 'po_token': ['token']}})
+            return opts
+        self.env.update(is_youtube_url=lambda *a: True, did_age_retry=False,
+                        is_age_restriction_error=lambda e: 'confirm your age' in e.lower(),
+                        add_web_creator_to_opts=add_creator, add_pot_to_ytdl_opts=add_pot,
+                        is_youtube_cookie_error=lambda *a: False)
+        self.extract_errors = ['Sign in to confirm your age', 'Requested format is not available', None]
+        result = self.run_download()
+        self.assertEqual(result['id'], 'xyz')
+        self.assertEqual(self.count, 3)
+        for opts in self.opts_seen[1:]:
+            self.assertEqual(opts['proxy'], 'http://proxy.test:8080')
+            self.assertEqual(opts['cookiefile'], str(cookie))
+            self.assertEqual(opts['extractor_args']['youtube']['po_token'], ['token'])
+            self.assertIn('web_creator', opts['extractor_args']['youtube']['player_client'])
 
     def test_success(self):
         self.assertEqual(self.run_download()['id'],'xyz');self.assertEqual(self.downloads,1)
