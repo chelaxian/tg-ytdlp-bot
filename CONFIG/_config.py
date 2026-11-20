@@ -102,9 +102,12 @@ class Config(object):
     WARP_ENDPOINT = "162.159.192.1:2408"  # engage.cloudflareclient.com over IPv4
     WARP_PROXY_HOST = "127.0.0.1"  # "172.17.0.1" when the bgutil PO-token container runs on Docker
     WARP_MAX_TUNNELS = 40  # concurrent tunnels; beyond that tasks share one fallback tunnel
-    WARP_REROLL_ATTEMPTS = 3  # re-roll a tunnel whose egress IP / IPv6 /64 was used among the latest ones
-    WARP_RECENT_EGRESS = 256  # how many latest egress IPs are remembered for that check
-    WARP_SHARED_MAX_AGE = 120  # seconds; the shared fallback tunnel gets a new IP after this
+    # Hosts that never go through WARP (is_direct_host in HELPERS/warp_tunnel.py).
+    # Sourced from DomainsConfig.NO_WARP_DOMAINS in domains.py — sites that
+    # serve anti-bot "challenge" pages to Cloudflare WARP egress IPs (VK & co)
+    # and work fine from the server's own IP. Override here with a tuple if
+    # you need a different set without touching domains.py.
+    WARP_DIRECT_HOSTS = tuple(DomainsConfig.NO_WARP_DOMAINS)
     # your firebase DB path
     BOT_DB_PATH = f"bot/{BOT_NAME_FOR_USERS}/"
     VIDEO_CACHE_DB_PATH = f"bot/video_cache"
@@ -127,18 +130,6 @@ class Config(object):
     ########################################################
     # OPTIONAL (NOT REQUIRED) SETTINGS - you can stop here
     ########################################################    
-    # Live browser session (dashboard "Browser" tab): the admin logs into services in a real
-    # Chromium; /cookies_from_browser and the X/TikTok/VK/Instagram buttons of /cookie take the
-    # CURRENT cookies from it (the static *_COOKIE_URL below stay as the fallback).
-    # Needs Chromium/Chrome on the server (apt install chromium) - no pip packages.
-    BROWSER_SESSION_ENABLED = True
-    BROWSER_CDP_PORT = 9223            # DevTools port, bound to 127.0.0.1 only
-    BROWSER_EXECUTABLE = ""            # empty = auto-detect chromium / google-chrome
-    BROWSER_PROXY = ""                 # optional, e.g. "socks5://127.0.0.1:1080"
-    BROWSER_TIMEZONE = ""              # empty = looked up once for the server's IP (e.g. "Europe/Berlin")
-    BROWSER_HEADLESS = False           # True = never use Xvfb (by default a windowed Chrome on Xvfb is used when installed)
-    BROWSER_KEEPALIVE_EVERY = 0       # seconds between background cookie-refresh visits per tab; 0 = take the panel value
-    BROWSER_COOKIES_ADMIN_ONLY = False # True = only Config.ADMIN may take the admin's logins
     # Cookie file URL
     # For Docker setup: served by the configuration-webserver container, which shares
     # warp's network namespace — so the bot reaches it at http://localhost/cookies/...
@@ -161,7 +152,8 @@ class Config(object):
     YOUTUBE_COOKIE_URL_10 = "http://localhost/cookies/youtube-10.txt"
     YOUTUBE_COOKIE_ORDER = "round_robin" # random, round_robin
     # YouTube test URL for cookie validation
-    YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=_GuOjXYl5ew" #youtube official video
+    YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ" # Rick Astley - stable, full formats
+    #YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=_GuOjXYl5ew" #youtube official video (unavailable since 2026-11)
     #YOUTUBE_COOKIE_TEST_URL = "https://youtu.be/XqZsoesa55w"  # Baby Shark Dance
     #YOUTUBE_COOKIE_TEST_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Rick Roll - short video
     INSTAGRAM_COOKIE_URL = "http://localhost/cookies/instagram.txt"

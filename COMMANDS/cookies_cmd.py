@@ -1572,9 +1572,9 @@ def test_youtube_cookies_on_url(cookie_file_path: str, url: str, user_id: int | 
             # Нас интересует только возможность извлечь info с активными куками.
             'ignore_no_formats_error': True,
             'cookiefile': cookie_file_path,
-            'extractor_args': {
-                'youtube': {'player_client': ['tv']}
-            },
+            # player_client не форсируем: с 2026-11 YouTube отдаёт tv-клиенту с WARP-egress
+            # только storyboard-форматы (sb*), из-за чего валидные куки браковались
+            # ("session is not authenticated"). Реальные загрузки клиент тоже не форсируют.
             'retries': 2,
             'extractor_retries': 1,
         }
@@ -1672,9 +1672,8 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
             # We only need to check if info can be extracted, not if formats can be processed
             'ignore_no_formats_error': True,  # Ignore format errors - we only check if info is extractable
             'cookiefile': cookie_file_path,
-            'extractor_args': {
-                'youtube': {'player_client': ['tv']}
-            },
+            # player_client не форсируем (см. комментарий в test_youtube_cookies_on_url):
+            # tv-клиент с WARP-egress получает только sb*-форматы => ложный "expired"
             'retries': 3,
             'extractor_retries': 2,
         }
@@ -1816,9 +1815,7 @@ def test_youtube_cookies(cookie_file_path: str, user_id: int | None = None) -> b
                     'noplaylist': True,
                     'ignore_no_formats_error': True,
                     'cookiefile': cookie_file_path,
-                    'extractor_args': {
-                        'youtube': {'player_client': ['tv']}
-                    },
+                    # player_client не форсируем (см. test_youtube_cookies_on_url)
                     'retries': 2,
                     'extractor_retries': 1,
                     'socket_timeout': 60,
