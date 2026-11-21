@@ -21,7 +21,7 @@ from HELPERS.limitter import TimeFormatter, humanbytes, check_user
 from HELPERS.download_status import acquire_download_slot, set_active_download, clear_download_start_time, check_download_timeout, start_hourglass_animation, start_cycle_progress, progress_bar, playlist_errors, playlist_errors_lock, register_download_cancel_event, unregister_download_cancel_event
 from HELPERS.safe_messeger import safe_delete_messages, safe_edit_message_text, safe_forward_messages
 from HELPERS.filesystem_hlp import sanitize_filename, sanitize_filename_strict, create_directory, check_disk_space, cleanup_user_temp_files
-from HELPERS.ytdlp_errors import should_abort_retries, is_missing_local_file, classify_retryability
+from HELPERS.ytdlp_errors import should_abort_retries, is_missing_local_file, classify_retryability, is_temporary_access_block
 from DATABASE.firebase_init import write_logs
 from URL_PARSERS.tags import generate_final_tags
 from services.stats_events import update_download_progress
@@ -2123,6 +2123,18 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             "• Check if ffmpeg is properly installed"
                         )
                     
+                    # YouTube temporary access block on the media download
+                    # (HTTP 403 from googlevideo after metadata already
+                    # succeeded): "site not supported / add a cookie" advice
+                    # is misleading; show the same localized message the video
+                    # path uses for YT_RATE_LIMITED.
+                    if is_youtube_url(url) and is_temporary_access_block(error_text):
+                        send_error_to_user(
+                            message,
+                            safe_get_messages(user_id).ALWAYS_ASK_YT_RATE_LIMITED_MSG
+                        )
+                        down_and_audio._error_message_sent = True
+                        return None
                     send_error_to_user(
                         message,
                         "<blockquote>Check <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>here</a> if your site supported</blockquote>\n"

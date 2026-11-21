@@ -108,6 +108,23 @@ TRANSIENT_NETWORK_INDICATORS = (
 _CLIENT_HTTP_ERROR_RE = re.compile(r'http error (400|404|405|410|451)\b')
 
 
+# Temporary server-side access block during the media download itself.
+# YouTube (after metadata extraction already succeeded) throttles
+# googlevideo.com requests with HTTP 403 (po-token/SABR enforcement) or an
+# explicit "try again later". Cookies sometimes help, but the user-facing
+# "site not supported / add a cookie" advice is wrong for this case.
+# Callers combine this with their own is_youtube_url(url) check.
+_TEMP_ACCESS_BLOCK_RE = re.compile(r'http error 403')
+
+
+def is_temporary_access_block(error_text):
+    """True when the error indicates a temporary upstream access block."""
+    low = _lower(error_text)
+    if _TEMP_ACCESS_BLOCK_RE.search(low):
+        return True
+    return 'try again later' in low or 'please try again' in low
+
+
 def _lower(error_text):
     return str(error_text or '').lower()
 
