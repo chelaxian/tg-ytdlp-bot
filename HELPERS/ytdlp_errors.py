@@ -165,6 +165,43 @@ def is_client_http_error(error_text):
     return bool(_CLIENT_HTTP_ERROR_RE.search(_lower(error_text)))
 
 
+# User-facing Always Ask message keys for deterministic, non-cookie-fixable
+# categories (audio path parity with the video/Always Ask menu, issues
+# #373/#479/#403). Categories whose outcome cookies CAN change (bot-check,
+# generic auth) stay on the cookie-advice message.
+PERMANENT_ASK_CATEGORIES = frozenset({
+    'VIDEO_UNAVAILABLE', 'EMPTY_DOWNLOAD', 'PREMIERE_PENDING',
+    'MEMBERS_ONLY', 'LIVE_ENDED', 'GEO_RESTRICTED', 'AGE_RESTRICTED',
+})
+
+
+def audio_error_ask_category(error_text, url=None):
+    """Ask-menu category for the audio path's final error message, or None.
+
+    Wraps CONFIG.errors.classify_yt_dlp_error(); returns the category only
+    when it maps to a localized ALWAYS_ASK_* message whose advice is correct
+    for the audio path (i.e. NOT "add a cookie" for a permanent condition).
+    """
+    try:
+        from CONFIG.errors import classify_yt_dlp_error
+        category = classify_yt_dlp_error(error_text, url)
+    except Exception:
+        category = None
+    if category in PERMANENT_ASK_CATEGORIES:
+        return category
+    # Gap-filler, same as always_ask_menu._classify_ask_error(): yt-dlp's
+    # "Video unavailable. This video is not available" (deleted/private
+    # video) has no dedicated branch in classify_yt_dlp_error() but the
+    # retryability classifier maps it to PERMANENT.
+    if category is None:
+        try:
+            if classify_retryability(error_text) == PERMANENT:
+                return 'VIDEO_UNAVAILABLE'
+        except Exception:
+            return None
+    return None
+
+
 def is_missing_local_file(error_text):
     """ENOENT on a local path (missing cookie file / download dir)."""
     low = _lower(error_text)
