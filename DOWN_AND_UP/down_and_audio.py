@@ -2123,6 +2123,22 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                             "• Check if ffmpeg is properly installed"
                         )
                     
+                    # Deterministic permanent errors (deleted/private video,
+                    # empty download, premiere pending, members-only, geo/age
+                    # restrictions): "site not supported / add a cookie"
+                    # advice is misleading — send the same localized message
+                    # the video path and Always Ask menu use (parity with
+                    # _ASK_ERROR_CATEGORY_MESSAGES, issues #373/#479/#403).
+                    from HELPERS.ytdlp_errors import audio_error_ask_category
+                    _ask_category = audio_error_ask_category(error_text, url)
+                    if _ask_category:
+                        from DOWN_AND_UP.always_ask_menu import _ask_error_message
+                        _ask_msg = _ask_error_message(user_id, _ask_category)
+                        if _ask_msg:
+                            send_error_to_user(message, _ask_msg)
+                            down_and_audio._error_message_sent = True
+                            return None
+
                     # YouTube temporary access block on the media download
                     # (HTTP 403 from googlevideo after metadata already
                     # succeeded): "site not supported / add a cookie" advice
