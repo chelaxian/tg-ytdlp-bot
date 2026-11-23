@@ -3047,16 +3047,33 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             "• Check if ffmpeg is properly installed"
                         )
                     
-                    send_error_to_user(
-                        message,                   
-                        f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
-                        f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_NEEDED_MSG}</blockquote>\n"
-                        f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_INSTRUCTIONS_MSG}</blockquote>\n"
-                        f"────────────────\n"
-                        f"❌ <b>Error Code:</b> <code>{error_code}</code>\n"
-                        f"📝 <b>Description:</b> {error_description}\n"
-                        f"🔧 <b>Full Error:</b> <code>{html.escape(str(error_message)[:600])}</code>"
-                    )
+                    # Deterministic permanent errors on non-YouTube sites
+                    # (deleted/private video, empty download, premiere,
+                    # members-only, geo/age restrictions): the generic
+                    # "site not supported / add a cookie" advice is
+                    # misleading — send the same localized message the
+                    # audio path and Always Ask menu use (parity with
+                    # down_and_audio.py, PR #574; issues #373/#479/#403).
+                    _ask_sent = False
+                    from HELPERS.ytdlp_errors import audio_error_ask_category
+                    _ask_category = audio_error_ask_category(error_message, url)
+                    if _ask_category:
+                        from DOWN_AND_UP.always_ask_menu import _ask_error_message
+                        _ask_msg = _ask_error_message(user_id, _ask_category)
+                        if _ask_msg:
+                            send_error_to_user(message, _ask_msg)
+                            _ask_sent = True
+                    if not _ask_sent:
+                        send_error_to_user(
+                            message,                   
+                            f"<blockquote>{safe_get_messages(user_id).ERROR_CHECK_SUPPORTED_SITES_MSG}</blockquote>\n"
+                            f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_NEEDED_MSG}</blockquote>\n"
+                            f"<blockquote>{safe_get_messages(user_id).ERROR_COOKIE_INSTRUCTIONS_MSG}</blockquote>\n"
+                            f"────────────────\n"
+                            f"❌ <b>Error Code:</b> <code>{error_code}</code>\n"
+                            f"📝 <b>Description:</b> {error_description}\n"
+                            f"🔧 <b>Full Error:</b> <code>{html.escape(str(error_message)[:600])}</code>"
+                            )
                     error_message_sent = True
                     # Send cookie hint if this is a cookie-related error
                     if is_cookie_error(error_message):
