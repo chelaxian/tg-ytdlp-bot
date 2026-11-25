@@ -1397,6 +1397,7 @@ class Messages(object):
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "สร้างแถวล่างใหม่"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "ไม่พบวิดีโอในเพลย์ลิสต์"
     ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
+    ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG = "❌ **รูปแบบไม่พร้อมใช้งาน**\n\nรูปแบบวิดีโอที่ร้องขอไม่พร้อมใช้งานสำหรับวิดีโอนี้"
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "URL ไม่รองรับ"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "ไม่พบวิดีโอ"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "ไม่พบวิดีโอ"

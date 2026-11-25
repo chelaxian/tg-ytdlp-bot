@@ -1397,6 +1397,7 @@ class Messages(object):
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "새 하단 행 생성됨"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "재생목록에서 비디오를 찾을 수 없습니다"
     ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
+    ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG = "❌ **형식을 사용할 수 없음**\n\n요청한 비디오 형식을 이 비디오에 사용할 수 없습니다."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "지원되지 않는 URL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "비디오를 찾을 수 없습니다"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "비디오를 찾을 수 없음"
