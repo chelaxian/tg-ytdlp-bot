@@ -570,6 +570,7 @@ _ASK_ERROR_CATEGORY_MESSAGES = {
     'CLIENT_HTTP_ERROR': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',  # issue #477
     'HTTP_CLIENT_ERROR': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',
     'HTTP_4XX': 'ALWAYS_ASK_SITE_REJECTED_REQUEST_MSG',
+    'FORMAT_UNAVAILABLE': 'ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG',  # log audit 2026-11-25
 }
 
 # Categories where sending cookies cannot change the outcome: skip the
@@ -603,6 +604,13 @@ def _classify_ask_error(error_text, url=None):
         return 'AUTH_REQUIRED'
     if retry_cat == ytdlp_errors.CLIENT_HTTP_ERROR:
         return 'CLIENT_HTTP_ERROR'
+    if retry_cat == ytdlp_errors.FORMAT_UNAVAILABLE:
+        # yt-dlp SABR/format-check failure on YouTube live/shorts URLs and
+        # expired formats: deterministic for this attempt, cookie advice is
+        # wrong. The download path already shows the localized
+        # FORMAT_NOT_AVAILABLE advice (log audit 2026-11-25: 12 raw-error
+        # user cases in 24h).
+        return 'FORMAT_UNAVAILABLE'
     if retry_cat == ytdlp_errors.PERMANENT:
         return 'VIDEO_UNAVAILABLE'
     low = error_text.lower()

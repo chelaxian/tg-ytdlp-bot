@@ -1398,6 +1398,7 @@ class Messages(object):
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "Жаңа төменгі жол жасалды"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "Ойнату тізімінде бейнелер табылмады"
     ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
+    ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG = "❌ **Формат қолжетімсіз**\n\nСұралған бейне форматы осы бейне үшін қолжетімсіз."
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "Қолдау көрсетілмейтін URL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "Бейне табылмады"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "Бейне табылмады"

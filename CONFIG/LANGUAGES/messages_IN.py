@@ -1396,6 +1396,7 @@ class Messages(object):
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "नई निचली पंक्ति बनाई गई"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "प्लेलिस्ट में कोई वीडियो नहीं मिला"
     ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
+    ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG = "❌ **प्रारूप उपलब्ध नहीं**\n\nअनुरोधित वीडियो प्रारूप इस वीडियो के लिए उपलब्ध नहीं है।"
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "असमर्थित URL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "कोई वीडियो नहीं मिल सका"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "कोई वीडियो नहीं मिला"

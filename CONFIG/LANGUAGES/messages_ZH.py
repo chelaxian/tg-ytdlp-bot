@@ -1397,6 +1397,7 @@ class Messages(object):
     ALWAYS_ASK_CREATED_NEW_BOTTOM_ROW_MSG = "创建了新的底部行"
     ALWAYS_ASK_NO_VIDEOS_FOUND_IN_PLAYLIST_MSG = "播放列表中未找到视频"
     ALWAYS_ASK_VIDEO_UNAVAILABLE_MSG = "🚫 <b>This video is unavailable.</b>\nIt may have been deleted, made private, or restricted by the platform. Please try another link."
+    ALWAYS_ASK_FORMAT_UNAVAILABLE_MSG = "❌ **格式不可用**\n\n请求的视频格式对此视频不可用。"
     ALWAYS_ASK_UNSUPPORTED_URL_MSG = "不支持的URL"
     ALWAYS_ASK_NO_VIDEO_COULD_BE_FOUND_MSG = "找不到视频"
     ALWAYS_ASK_NO_VIDEO_FOUND_MSG = "未找到视频"
