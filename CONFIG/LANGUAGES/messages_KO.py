@@ -1701,8 +1701,8 @@ class Messages(object):
     PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 선택한 국가에 대해 프록시가 자동으로 활성화됩니다."
     PROXY_COUNTRY_CLEARED_MSG = "✅ 국가 선택이 삭제되었습니다."
     PROXY_COUNTRY_CLEARED_CALLBACK_MSG = "✅ 국가 선택이 삭제되었습니다."
-    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 선택한 국가: {국가}"
-    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 파일의 국가 사용: {국가}"
+    PROXY_COUNTRY_SELECTED_CALLBACK_MSG = "✅ 선택한 국가: {country}"
+    PROXY_COUNTRY_FROM_FILE_MSG = "🌍 파일의 국가 사용: {country}"
 
     PROXY_COUNTRY_AVAILABLE_COUNTRIES_MSG = "🌍 파일에서 사용 가능한 국가: {count}"
 

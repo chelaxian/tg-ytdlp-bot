@@ -2586,7 +2586,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 # If no files found with standard audio extensions, try additional formats
                 if not files:
                     logger.warning(f"No files found with standard audio extensions, trying additional formats")
-                    additional_extensions = ['.mka', '.wma', '.aiff', '.au', '.ra', '.rm', '.3ga', '.amr', '.awb', '.m4b', '.m4p', '.oga', '.spx', '.tta', '.weba']
+                    additional_extensions = ['.mka', '.wma', '.aiff', '.au', '.ra', '.rm', '.3ga', '.amr', '.awb', '.m4b', '.m4p', '.oga', '.spx', '.tta', '.weba', '.webm']
                     files = [fname for fname in allfiles if any(fname.endswith(ext) for ext in additional_extensions)]
                     files.sort()
                     logger.info(f"Found audio files with additional formats: {files}")

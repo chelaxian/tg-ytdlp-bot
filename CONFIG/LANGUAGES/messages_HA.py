@@ -1696,7 +1696,7 @@ Koyi ƙari: /playlist"""
 
     PROXY_COUNTRY_SELECT_HEADER_MSG = "🌍 Zaɓi Ƙasa:"
     PROXY_COUNTRY_CLEAR_BUTTON_MSG = "❌ Share Zaɓin Ƙasa"
-    PROXY_COUNTRY_SELECTED_MSG = "✅ Ƙasar da aka zaɓa: {ƙasar} (lambar: {country_code})"
+    PROXY_COUNTRY_SELECTED_MSG = "✅ Ƙasar da aka zaɓa: {country} (lambar: {country_code})"
     PROXY_COUNTRY_PROXIES_AVAILABLE_MSG = "📊 Akwai proxies: {proxy_count} (HTTP: {http_count}, SOCKS5: {socks5_count})"
     PROXY_COUNTRY_TRY_ORDER_MSG = "🔄 Bot zai fara gwada HTTP, sannan SOCKS5"
     PROXY_COUNTRY_AUTO_ENABLED_MSG = "💡 Ana kunna wakili ta atomatik don zaɓin ƙasa"
@@ -1709,7 +1709,7 @@ Koyi ƙari: /playlist"""
 
     PROXY_COUNTRY_NOT_AVAILABLE_MSG = "❌ Proxy ba a ƙasa baya samuwa. Ka gwada wata ƙasa."
     PROXY_COUNTRY_SET_BY_COMMAND_MSG = "✅ An saita proxy: ƙasa {country} (lambar: {country_code})"
-    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ƙasar da aka zaɓa: {ƙasa} (lambar: {country_code})"
+    PROXY_COUNTRY_SELECTED_IN_MENU_MSG = "🌍 Ƙasar da aka zaɓa: {country} (lambar: {country_code})"
     PROXY_COUNTRY_ENABLED_FOR_COUNTRY_MSG = "✅ An ba da izinin wakili ga wannan ƙasa"
     PROXY_COUNTRY_DISABLED_FOR_COUNTRY_MSG = "⚠️ An kashe wakili (latsa ALL (AUTO) don kunnawa)"
     # MediaInfo command button texts
