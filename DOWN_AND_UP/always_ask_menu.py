@@ -2976,11 +2976,15 @@ def askq_callback(app, callback_query):
                 logger.error(f"{LoggerMsg.ALWAYS_ASK_ERROR_SENDING_FORMATS_FILE_LOG_MSG}: {e}")
                 from html import escape as _escape
                 from HELPERS.logger import sanitize_error_message as _sanitize_error
-                app.send_message(
-                    chat_id,
-                    safe_get_messages(user_id).AA_ERROR_SENDING_FORMATS_MSG.format(error=_escape(_sanitize_error(str(e)))),
-                    reply_parameters=ReplyParameters(message_id=original_message.id)
-                )
+                if "USER_IS_BLOCKED" in str(e):
+                    # Nothing more can be delivered to this user; do not raise from the error branch.
+                    logger.warning(f"Formats list not delivered: user {user_id} has blocked the bot")
+                else:
+                    app.send_message(
+                        chat_id,
+                        safe_get_messages(user_id).AA_ERROR_SENDING_FORMATS_MSG.format(error=_escape(_sanitize_error(str(e)))),
+                        reply_parameters=ReplyParameters(message_id=original_message.id)
+                    )
             finally:
                 # Clean up temporary file
                 try:
